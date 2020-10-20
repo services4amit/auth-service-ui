@@ -1,115 +1,118 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { NavLink } from "react-router-dom";
 import axios from "axios";
-import { Switch, Route, Redirect, Link, NavLink } from 'react-router-dom';
-import InputBox from "../InputBox/InputBox";
-import ErrorBox from "../ErrorBox/ErrorBox"
 
-import "./SignIn.scss";
+import Validate from "../common/validate";
+import Valid from "../common/valid";
+import rules from "../common/validationRules";
+import config from "../common/config"
 
 const SignIn = () => {
-  const [email, setEmail] = useState("");
-  const [pwd, setPwd] = useState("");
-  const [errorList, setErrorList] = useState([]);
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
   const [loginFail, setloginFail] = useState(false);
 
-  const [errorStates, setErrorstates] = useState({
-    emailErr: false,
-    pwdErr: false,
-    errorState: false,
-  });
+  const [validation, setValidation] = useState(Valid(rules));
+  const [formFields, setFormFields] = useState(config.signIn);
+  const [validation_field, setValidationField] = useState();
+  const [reqRules, setReqRules] = useState([]);
 
-  const handleLogin = () => {
-    const resultList = [];
+  let requiredRules = [];
+  useEffect(() => {
+    formFields.map((item) => {
+      for(let i = 0; i < rules.length; i++){
+        if(rules[i].field===item){
+          requiredRules.push(rules[i])
+        }
+      }
+      setReqRules(requiredRules)
+    });
+  }, []);
 
-    const data = {
-      'email': email,
-      'password': pwd,
-    }
-    const err = {};
-    if (email === "") {
-      resultList.push("Email");
-      err.emailErr = true;
-    }
-    if (pwd === "") {
-      resultList.push("Password");
-      err.pwdErr = true;
-    }
+  useEffect(()=>{
+    setValidationField(Valid(reqRules));
+  },[reqRules])
 
-    setErrorstates(err);
-
-    if (resultList.length !== 0) {
-      setErrorList(resultList);
-      window.scrollTo(0,0);
-    } else {
-      setErrorList([]);
-      axios.post('http://localhost:8090/auth/login', data)
-      .then((response)=>{
-        console.log('Login Response', response.data.authtoken);
-        localStorage.setItem("authToken",response.data.authtoken);
-        window.location.href='http://localhost:3000/landPage'
-        
-        // console.log('Login Response', response);
-      })
-      .catch((error)=>{
-        setloginFail(true)
-        console.log('Error Login', error);
-      })
-    }
+  const changeHandler = (e, valtype) => {
+    let name = e.target.name;
+    setFormData({
+      ...formData,
+      [name]: e.target.value,
+    });
   };
-
-  const emailChangeHandler = (e) => {
-    setEmail(e.target.value);
-    setErrorstates({ ...errorStates, emailErr: false });
-  };
-
-  const pwdChangeHandler = (e) => {
-    setPwd(e.target.value);
-    setErrorstates({ ...errorStates, pwdErr: false });
-  };
-
- 
   
+  const formSubmit = (event) => {
+    event.preventDefault();
+
+    const validation = Validate(formData, reqRules, {...validation_field});
+    setValidation(validation);
+    if (validation.isValid) {
+      axios
+        .post("http://localhost:8090/auth/login", formData)
+        .then((response) => {
+          window.sessionStorage.setItem("authToken", response.data.authtoken);
+          window.location.href = "/landPage";
+        })
+        .catch((error) => {
+          setloginFail(true);
+          console.log("Error Login", error);
+        });
+      console.log("User has been logged in succesfully");
+    } else {
+      console.log("Invalid input values", validation);
+    }
+  };
+
   return (
     <div id="sign-in">
-      <div className="sign-up">
-        {errorList.length !== 0 ? (
-          <ErrorBox
-            errorMessage="Please correct the following fields"
-            errorList={errorList}
-          />
-        ) : null}
-      </div>
       <h1>Sign-In Page</h1>
       <div className="sign-in">
-        <form autoComplete="off" component="div">
-          <InputBox
-            lableText="Email"
-            inputType="text"
-            maxLen="255"
-            isRequired
-            errorField={errorStates.emailErr}
-            handleChange={emailChangeHandler}
-          />
-          <InputBox
-            lableText="Password"
-            inputType="text"
-            maxLen="10"
-            type="password"
-            isRequired
-            errorField={errorStates.pwdErr}
-            handleChange={pwdChangeHandler}
-          />
-        </form>
-        <div className="login-div">
-          <button className="login-button" onClick={handleLogin}>
-            <span>Login</span>
+        <form className="demoForm">
+          <h2>Sign up</h2>
+
+          <div className="input-div">
+            <label htmlFor="email">Email address</label>
+            <input
+              type="email"
+              className={validation.email.isInvalid && "has-error"}
+              required
+              name="email"
+              valtype="myEmail"
+              placeholder="john@doe.com"
+              onChange={(e) => changeHandler(e, "myEmail")}
+            />
+            <span className={validation.email.isInvalid && "error-message"}>
+              {validation.email.message}
+            </span>
+          </div>
+          <div className="input-div">
+            <label htmlFor="password">Password</label>
+            <input
+              type="password"
+              className={validation.password.isInvalid && "has-error"}
+              required
+              name="password"
+              valtype="myPassword"
+              placeholder=""
+              onChange={(e) => changeHandler(e, "myPassword")}
+            />
+            <span className={validation.password.isInvalid && "error-message"}>
+              {validation.password.message}
+            </span>
+          </div>
+
+          <button onClick={formSubmit} className="btn btn-primary">
+            Log In
           </button>
-        </div>
-        {loginFail?<h2>Authentication Failed</h2>:null}
-     
-        
+        </form>
+        {loginFail ? <h2>Authentication Failed</h2> : null}
+
         <div className="login-div">
-          <NavLink to="/createAccount">Not an existing user! Create Account</NavLink>
+          <NavLink to="/createAccount">
+            Not an existing user! Create Account
+          </NavLink>
           {/* <a href='/createAccount'>Not an existing user! Create Account</a> */}
         </div>
       </div>

@@ -24,10 +24,13 @@
     "react-markdown": "^4.3.1",
     "react-recaptcha": "^2.3.10",
     "react-responsive-carousel": "^3.2.7",
+    "react-slick": "^0.26.1",
+    "idb-keyval": "^3.2.0",
     "react-router-dom": "^5.2.0",
     "react-scripts": "^3.4.1",
-    "react-slick": "^0.26.1",
+    "sfcookies": "^1.0.2",
     "styled-components": "^5.1.1",
+    "validator": "^13.1.17",
     "xlsx": "^0.16.3"
   },
   "scripts": {

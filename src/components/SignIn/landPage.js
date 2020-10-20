@@ -6,32 +6,23 @@ import "./SignIn.scss";
 const LandPage = () => {
 
   const [name, setuserName] = useState("");
-  const [authtoken, setAuthtoken] = useState("");
-
-  // useEffect(()=>{
-
-  //   let auth=localStorage.getItem('authToken');
-  //   console.log("auth",auth)
-  //   setAuthtoken(auth);
-
-  // },[])
 
   useEffect(() => {
 
-    if (localStorage.getItem('authToken')) {
+    if (window.sessionStorage.getItem('authToken')) {
 
       axios
-        .post("http://localhost:8090/auth/home", { authtoken: localStorage.getItem('authToken') })
+        .post("http://localhost:8090/auth/home", { authtoken: window.sessionStorage.getItem('authToken') })
         .then((response) => {
           setuserName(response.data.name);
           console.log("response", response);
         })
         .catch((error) => {
           console.log("logout error", error);
-          window.location.href = "http://localhost:3000/signIn";
+          window.location.href = "/signIn";
         });
     } else {
-      window.location.href = "http://localhost:3000/signIn";
+      window.location.href = "/signIn";
     }
 
   }, [])
@@ -39,11 +30,10 @@ const LandPage = () => {
 
   const logoutHandler = () => {
     axios
-      .post("http://localhost:8090/auth/logout", { authtoken: localStorage.getItem('authToken') })
+      .post("http://localhost:8090/auth/logout", { authtoken: window.sessionStorage.getItem('authToken') })
       .then((response) => {
-        console.log("38", response.data)
-        localStorage.setItem("authToken", response.data.authtoken);
-        window.location.href = "http://localhost:3000/signIn";
+        window.sessionStorage.setItem("authToken", response.data.authtoken);
+        window.location.href = "/signIn";
       })
       .catch((error) => {
         console.log("logout error", error);

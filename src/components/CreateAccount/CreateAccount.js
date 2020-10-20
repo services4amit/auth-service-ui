@@ -1,155 +1,152 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-import InputBox from "../InputBox/InputBox";
-import ErrorBox from "../ErrorBox/ErrorBox";
+import Validate from "../common/validate";
+import Valid from "../common/valid";
+import rules from "../common/validationRules";
+import config from "../common/config";
 
 import "./CreateAccount.scss";
 
-const CreateAccount = () => {
-  const [name, setuserName] = useState("");
-  const [pwd, setPwd] = useState("");
-  const [email, setEmail] = useState("");
-  const [retypePwd, setRetypePwd] = useState("");
-  const [errorList, setErrorList] = useState([]);
-
-  const [errorStates, setErrorstates] = useState({
-    nameErr: false,
-    emailErr: false,
-    pwdErr: false,
-    retypePwdErr: false,
-    errorState: false,
+const FormValidate = () => {
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    name: "",
+    // password_confirmation: ""
   });
 
-  const userNameChangeHandler = (e) => {
-    setuserName(e.target.value);
-    setErrorstates({ ...errorStates, nameErr: false });
+  const changeHandler = (e) => {
+    let name = e.target.name;
+    setFormData({
+      ...formData,
+      [name]: e.target.value,
+    });
   };
 
-  const pwdChangeHandler = (e) => {
-    setPwd(e.target.value);
-    setErrorstates({ ...errorStates, pwdErr: false });
-  };
+  const [validation, setValidation] = useState(Valid(rules));
+  const [formFields, setFormFields] = useState(config.createAcc);
+  const [validation_field, setValidationField] = useState();
+  const [reqRules, setReqRules] = useState([]);
 
-  const emailChangeHandler = (e) => {
-    setEmail(e.target.value);
-    setErrorstates({ ...errorStates, emailErr: false });
-  };
+  let requiredRules = [];
+  useEffect(() => {
+    formFields.map((item) => {
+      for (let i = 0; i < rules.length; i++) {
+        if (rules[i].field === item) {
+          requiredRules.push(rules[i]);
+        }
+      }
+      setReqRules(requiredRules);
+    });
+  }, []);
 
-  const retypePwdChangeHandler = (e) => {
-    setRetypePwd(e.target.value);
-    setErrorstates({ ...errorStates, retypePwdErr: false });
-  };
+  useEffect(() => {
+    setValidationField(Valid(reqRules));
+  }, [reqRules]);
 
-  const signUp = () => {
-    var resultList = [];
-    const data = {
-      name: name,
-      email: email,
-      password: pwd,
-    };
-
-    const err = {};
-
-    if (name === "") {
-      resultList.push("User Name");
-      err.nameErr = true;
-    }
-
-    if (email === "") {
-      resultList.push("Email");
-      err.emailErr = true;
-    }
-
-    if (pwd === "") {
-      resultList.push("Password");
-      err.pwdErr = true;
-    }
-
-    if (retypePwd === "") {
-      resultList.push("Re-Type Password");
-      err.retypePwdErr = true;
-    } else if (pwd !== retypePwd) {
-      resultList.push("Password and Re-type password fields should match");
-      err.pwdErr = true;
-      err.retypePwdErr = true;
-    }
-
-    setErrorstates(err);
-
-    if (resultList.length !== 0) {
-      setErrorList(resultList);
-      window.scrollTo(0, 0);
-    } else {
-      setErrorList([]);
+  const formSubmit = (event) => {
+    event.preventDefault();
+    const validation = Validate(formData, reqRules, { ...validation_field });
+    setValidation(validation);
+    if (validation.isValid) {
       axios
-        .post("http://localhost:8090/auth/signup", data)
+        .post("http://localhost:8090/auth/signup", formData)
         .then((response) => {
-            window.location.href='http://localhost:3000/landPage'
+          window.sessionStorage.setItem("authToken", response.data.authtoken);
+          window.location.href = "/landPage";
           console.log("signup response", response);
         })
         .catch((err) => {
           console.log("err", err);
         });
+      console.log("User has been registered succesfully");
+    } else {
+      console.log("Invalid input values", validation);
     }
   };
 
   return (
-    <div id="sign-up">
-      <div className="sign-up">
-        {errorList.length !== 0 ? (
-          <ErrorBox
-            errorMessage="Please correct the following fields"
-            errorList={errorList}
+    <div>
+      <form className="demoForm">
+        <h2>Sign up</h2>
+
+        <div className="input-div">
+          <label htmlFor="email">Email address</label>
+          <input
+            type="email"
+            className={validation.email.isInvalid && "has-error"}
+            required
+            name="email"
+            valtype="myEmail"
+            placeholder="john@doe.com"
+            onChange={(e) => changeHandler(e, "myEmail")}
           />
-        ) : null}
-      </div>
-      <h1>Sign-Up Page</h1>
-      <div className="sign-up">
-        <form autoComplete="off" component="div">
-          <InputBox
-            lableText="User Name"
-            inputType="text"
-            maxLen="10"
-            isRequired
-            errorField={errorStates.nameErr}
-            handleChange={userNameChangeHandler}
-          />
-          <InputBox
-            lableText="Email"
-            inputType="text"
-            maxLen="255"
-            isRequired
-            errorField={errorStates.emailErr}
-            handleChange={emailChangeHandler}
-          />
-          <InputBox
-            lableText="Password"
-            inputType="text"
-            maxLen="10"
-            type="password"
-            isRequired
-            errorField={errorStates.pwdErr}
-            handleChange={pwdChangeHandler}
-          />
-          <InputBox
-            lableText="Re-type Password"
-            inputType="text"
-            maxLen="10"
-            type="password"
-            isRequired
-            errorField={errorStates.retypePwdErr}
-            handleChange={retypePwdChangeHandler}
-          />
-        </form>
-        <div className="signUp-div">
-          <button className="signUp-button" onClick={signUp}>
-            <span>Sign Up</span>
-          </button>
+          <span className={validation.email.isInvalid && "error-message"}>
+            {validation.email.message}
+          </span>
         </div>
-      </div>
+
+        <div className="input-div">
+          <label htmlFor="name">Name</label>
+          <input
+            type="name"
+            className={validation.name.isInvalid && "has-error"}
+            required
+            name="name"
+            valtype="myName"
+            placeholder=""
+            onChange={(e) => changeHandler(e, "myName")}
+          />
+          <span className={validation.name.isInvalid && "error-message"}>
+            {validation.name.message}
+          </span>
+        </div>
+
+        <div className="input-div">
+          <label htmlFor="password">Password</label>
+          <input
+            type="password"
+            className={validation.password.isInvalid && "has-error"}
+            required
+            name="password"
+            valtype="myPassword"
+            placeholder=""
+            onChange={(e) => changeHandler(e, "myPassword")}
+          />
+          <span className={validation.password.isInvalid && "error-message"}>
+            {validation.password.message}
+          </span>
+        </div>
+
+        {/* <div className="input-div">
+          <label htmlFor="password_confirmation">Re-Type Password</label>
+          <input
+            type="password"
+            className={
+              validation.password_confirmation.isInvalid && "has-error"
+            }
+            required
+            name="password_confirmation"
+            valtype="myPwdConfirm"
+            placeholder=""
+            onChange={(e)=>changeHandler(e, "myPwdConfirm")}
+          />
+          <span
+            className={
+              validation.password_confirmation.isInvalid && "error-message"
+            }
+          >
+            {validation.password_confirmation.message}
+          </span>
+        </div> */}
+
+        <button onClick={formSubmit} className="btn btn-primary">
+          Sign up
+        </button>
+      </form>
     </div>
   );
 };
 
-export default CreateAccount;
+export default FormValidate;
